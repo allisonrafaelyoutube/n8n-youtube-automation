@@ -17,10 +17,10 @@ Automacao para postar comentario automatico em videos novos do seu canal YouTube
 
 - [x] Render MCP conectado (`allisonrafaelaraujo@gmail.com`)
 - [x] Supabase CLI logada e linkada (`enxnxtrymptxmwydqrus` — projeto **Youtube**)
-- [x] Host do banco: `db.enxnxtrymptxmwydqrus.supabase.co`
-- [ ] MCP Supabase no Cursor — reinicie o Cursor apos salvar o token
-- [ ] Repo no GitHub (conta nova)
-- [ ] Blueprint deployado no Render
+- [x] GitHub: [allisonrafaelyoutube/n8n-youtube-automation](https://github.com/allisonrafaelyoutube/n8n-youtube-automation)
+- [x] Render deploy: [n8n-youtube-xs7s.onrender.com](https://n8n-youtube-xs7s.onrender.com)
+- [ ] Senha do Postgres configurada no Render (`DB_POSTGRESDB_PASSWORD`)
+- [ ] Keep-alive no [cron-job.org](https://cron-job.org) (ping `/healthz` a cada 10 min)
 - [ ] Workflow importado no n8n
 
 ---
