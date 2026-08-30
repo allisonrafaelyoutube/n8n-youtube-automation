@@ -1,0 +1,240 @@
+{
+  "name": "YouTube - Comentario automatico em videos novos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "A cada 30 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.youtube.com/feeds/videos.xml?channel_id={{ $env.YOUTUBE_CHANNEL_ID || 'UCxxxxxxxxxxxxxxxx' }}"
+      },
+      "id": "rss-feed",
+      "name": "RSS do canal YouTube",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "recent-video",
+              "leftValue": "={{ $json.pubDate || $json.isoDate }}",
+              "rightValue": "={{ $now.minus({ hours: 3 }).toISO() }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-recent",
+      "name": "Video publicado nas ultimas 3h",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst output = [];\nfor (const item of items) {\n  const link = item.json.link || item.json.guid || '';\n  const match = link.match(/(?:v=|\\/shorts\\/|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);\n  const videoId = match ? match[1] : null;\n  if (!videoId) continue;\n  if (processed.videoIds[videoId]) continue;\n\n  output.push({\n    json: {\n      videoId,\n      title: item.json.title,\n      link,\n      pubDate: item.json.pubDate || item.json.isoDate\n    }\n  });\n}\n\nreturn output;"
+      },
+      "id": "extract-video-id",
+      "name": "Extrair videoId e evitar duplicata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-video",
+              "leftValue": "={{ $json.videoId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-new-video",
+      "name": "Tem video novo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "minutes"
+      },
+      "id": "wait-processing",
+      "name": "Esperar processamento do video",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1340, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"snippet\": {\n    \"videoId\": \"{{ $json.videoId }}\",\n    \"topLevelComment\": {\n      \"snippet\": {\n        \"textOriginal\": \"{{ $env.YOUTUBE_COMMENT_TEXT || 'Links e materiais do video aqui! Deixa sua duvida nos comentarios.' }}\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "post-comment",
+      "name": "Postar comentario (YouTube API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 220],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "CONFIGURE_ME",
+          "name": "YouTube OAuth - conta do canal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst videoId = $('Extrair videoId e evitar duplicata').item.json.videoId;\nconst commentId = $json.id || 'unknown';\n\nprocessed.videoIds[videoId] = {\n  commentId,\n  postedAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    videoId,\n    commentId,\n    title: $('Extrair videoId e evitar duplicata').item.json.title,\n    studioUrl: `https://studio.youtube.com/video/${videoId}/comments`,\n    message: 'Comentario postado. Fixe manualmente no YouTube Studio (pin nao existe na API).'\n  }\n}];"
+      },
+      "id": "save-processed",
+      "name": "Salvar video processado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 220]
+    }
+  ],
+  "connections": {
+    "A cada 30 minutos": {
+      "main": [
+        [
+          {
+            "node": "RSS do canal YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS do canal YouTube": {
+      "main": [
+        [
+          {
+            "node": "Video publicado nas ultimas 3h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video publicado nas ultimas 3h": {
+      "main": [
+        [
+          {
+            "node": "Extrair videoId e evitar duplicata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair videoId e evitar duplicata": {
+      "main": [
+        [
+          {
+            "node": "Tem video novo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem video novo?": {
+      "main": [
+        [
+          {
+            "node": "Esperar processamento do video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Esperar processamento do video": {
+      "main": [
+        [
+          {
+            "node": "Postar comentario (YouTube API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postar comentario (YouTube API)": {
+      "main": [
+        [
+          {
+            "node": "Salvar video processado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
