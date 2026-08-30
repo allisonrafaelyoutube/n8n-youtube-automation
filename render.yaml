@@ -8,7 +8,7 @@ services:
     name: n8n-youtube
     region: virginia
     image:
-      url: docker.io/n8nio/n8n:1.83.2
+      url: docker.io/n8nio/n8n:2.36.8
     healthCheckPath: /healthz
     envVars:
       - key: N8N_ENCRYPTION_KEY
