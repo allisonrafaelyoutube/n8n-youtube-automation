@@ -16,7 +16,9 @@ Automacao para postar comentario automatico em videos novos do seu canal YouTube
 ## Status atual
 
 - [x] Render MCP conectado (`allisonrafaelaraujo@gmail.com`)
-- [ ] Supabase MCP — autenticar no Cursor (Settings > Tools & MCP > Supabase > Connect)
+- [x] Supabase CLI logada e linkada (`enxnxtrymptxmwydqrus` — projeto **Youtube**)
+- [x] Host do banco: `db.enxnxtrymptxmwydqrus.supabase.co`
+- [ ] MCP Supabase no Cursor — reinicie o Cursor apos salvar o token
 - [ ] Repo no GitHub (conta nova)
 - [ ] Blueprint deployado no Render
 - [ ] Workflow importado no n8n
