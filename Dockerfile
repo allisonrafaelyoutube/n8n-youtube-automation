@@ -1,10 +1,8 @@
-FROM n8nio/n8n:2.36.8
+FROM n8nio/n8n:1.83.2
 
 EXPOSE 5678
 ENV N8N_LISTEN_ADDRESS=0.0.0.0
-# Render free tier = 512 MB total; task runners + heap must stay under that
-ENV NODE_OPTIONS=--max-old-space-size=384
-ENV N8N_RUNNERS_ENABLED=false
+ENV NODE_OPTIONS=--max-old-space-size=460
 ENV N8N_METRICS=false
 ENV N8N_DIAGNOSTICS_ENABLED=false
 ENV N8N_PERSONALIZATION_ENABLED=false
