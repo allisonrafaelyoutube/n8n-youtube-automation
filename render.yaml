@@ -16,13 +16,13 @@ services:
       - key: DB_TYPE
         value: postgresdb
       - key: DB_POSTGRESDB_DATABASE
-        sync: false
+        value: postgres
       - key: DB_POSTGRESDB_HOST
-        sync: false
+        value: db.enxnxtrymptxmwydqrus.supabase.co
       - key: DB_POSTGRESDB_PORT
         value: "5432"
       - key: DB_POSTGRESDB_USER
-        sync: false
+        value: postgres
       - key: DB_POSTGRESDB_PASSWORD
         sync: false
       - key: DB_POSTGRESDB_SSL_ENABLED
