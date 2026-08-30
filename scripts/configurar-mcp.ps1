@@ -21,8 +21,11 @@ Write-Host "2) Supabase: crie um Access Token (Account > Access Tokens)" -Foregr
 $supabaseToken = Read-Host "Cole o SUPABASE ACCESS TOKEN"
 
 Write-Host ""
-Write-Host "3) Supabase: Project ID (Settings > General > Reference ID, ex: abcdefghijklmnop)" -ForegroundColor White
-$projectRef = Read-Host "Cole o SUPABASE PROJECT REF"
+Write-Host "3) Supabase: Project ID ja configurado -> enxnxtrymptxmwydqrus" -ForegroundColor Green
+$projectRef = "enxnxtrymptxmwydqrus"
+if ([string]::IsNullOrWhiteSpace($projectRef)) {
+    $projectRef = Read-Host "Cole o SUPABASE PROJECT REF"
+}
 
 if ([string]::IsNullOrWhiteSpace($renderKey) -or [string]::IsNullOrWhiteSpace($supabaseToken) -or [string]::IsNullOrWhiteSpace($projectRef)) {
     Write-Host "Erro: todos os campos sao obrigatorios." -ForegroundColor Red
