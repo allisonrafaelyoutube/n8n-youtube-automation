@@ -1,17 +1,19 @@
 # Configura MCP Render + Supabase para a conta allisonrafaelaraujo@gmail.com
 # Execute no PowerShell: .\configurar-mcp.ps1
 
+. "$PSScriptRoot\helpers.ps1"
+
 Write-Host ""
 Write-Host "=== Configuracao MCP (Render + Supabase) ===" -ForegroundColor Cyan
-Write-Host "Use a conta NOVA (allisonrafaelaraujo@gmail.com) nos sites que abrirem." -ForegroundColor Yellow
+Write-Host "Use a conta NOVA (allisonrafaelaraujo@gmail.com) nos sites que abrirem no Brave." -ForegroundColor Yellow
 Write-Host ""
 
-# Abre paginas para gerar as chaves
-Start-Process "https://dashboard.render.com/u/settings#api-keys"
+# Abre paginas no Brave (conta logada la)
+Open-Link "https://dashboard.render.com/u/settings#api-keys"
 Start-Sleep -Seconds 1
-Start-Process "https://supabase.com/dashboard/account/tokens"
+Open-Link "https://supabase.com/dashboard/account/tokens"
 Start-Sleep -Seconds 1
-Start-Process "https://supabase.com/dashboard/project/_/settings/general"
+Open-Link "https://supabase.com/dashboard/project/enxnxtrymptxmwydqrus/settings/general"
 
 Write-Host "1) Render: crie uma API Key e copie" -ForegroundColor White
 $renderKey = Read-Host "Cole a RENDER API KEY"

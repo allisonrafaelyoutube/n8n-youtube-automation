@@ -1,6 +1,8 @@
 # Conecta CLI + MCP ao projeto Supabase
 # Execute: .\conectar-supabase.ps1
 
+. "$PSScriptRoot\helpers.ps1"
+
 $ProjectRef = "enxnxtrymptxmwydqrus"
 $ProjectDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (Test-Path (Join-Path $PSScriptRoot "..\supabase\config.toml")) {
@@ -23,10 +25,10 @@ if (-not (Test-Path "supabase\config.toml")) {
     supabase init
 }
 
-Write-Host "Abra estas paginas (conta allisonrafaelaraujo@gmail.com):" -ForegroundColor Yellow
-Start-Process "https://supabase.com/dashboard/account/tokens"
+Write-Host "Abrindo paginas no Brave (conta allisonrafaelaraujo@gmail.com):" -ForegroundColor Yellow
+Open-Link "https://supabase.com/dashboard/account/tokens"
 Start-Sleep -Seconds 1
-Start-Process "https://supabase.com/dashboard/project/$ProjectRef/settings/database"
+Open-Link "https://supabase.com/dashboard/project/$ProjectRef/settings/database"
 
 Write-Host ""
 Write-Host "1) Access Token: Account > Access Tokens > Generate new token" -ForegroundColor White
