@@ -4,11 +4,11 @@
 services:
   - type: web
     plan: free
-    runtime: image
+    runtime: docker
     name: n8n-youtube
     region: virginia
-    image:
-      url: docker.io/n8nio/n8n:2.36.8
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /healthz
     envVars:
       - key: N8N_ENCRYPTION_KEY
@@ -18,23 +18,23 @@ services:
       - key: DB_POSTGRESDB_DATABASE
         value: postgres
       - key: DB_POSTGRESDB_HOST
-        value: db.enxnxtrymptxmwydqrus.supabase.co
+        value: aws-0-ca-central-1.pooler.supabase.com
       - key: DB_POSTGRESDB_PORT
         value: "5432"
       - key: DB_POSTGRESDB_USER
-        value: postgres
+        value: postgres.enxnxtrymptxmwydqrus
       - key: DB_POSTGRESDB_PASSWORD
         sync: false
       - key: DB_POSTGRESDB_SSL_ENABLED
         value: "true"
       - key: N8N_HOST
-        value: n8n-youtube.onrender.com
+        value: n8n-youtube-xs7s.onrender.com
       - key: N8N_PROTOCOL
         value: https
       - key: N8N_PORT
         value: "5678"
-      - key: WEBHOOK_URL
-        value: https://n8n-youtube.onrender.com/
+      - key: N8N_WEBHOOK_URL
+        value: https://n8n-youtube-xs7s.onrender.com/
       - key: GENERIC_TIMEZONE
         value: America/Sao_Paulo
       - key: TZ
