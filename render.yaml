@@ -28,13 +28,13 @@ services:
       - key: DB_POSTGRESDB_SSL_ENABLED
         value: "true"
       - key: N8N_HOST
-        sync: false
+        value: n8n-youtube.onrender.com
       - key: N8N_PROTOCOL
         value: https
       - key: N8N_PORT
         value: "5678"
       - key: WEBHOOK_URL
-        sync: false
+        value: https://n8n-youtube.onrender.com/
       - key: GENERIC_TIMEZONE
         value: America/Sao_Paulo
       - key: TZ
