@@ -22,6 +22,33 @@ Automacao para postar comentario automatico em videos novos do seu canal YouTube
 - [ ] Senha do Postgres configurada no Render (`DB_POSTGRESDB_PASSWORD`)
 - [ ] Keep-alive no [cron-job.org](https://cron-job.org) (ping `/healthz` a cada 10 min)
 - [ ] Workflow importado no n8n
+- [ ] WebSub configurado (comentario instantaneo)
+
+---
+
+## WebSub / PubSubHubbub (comentario em segundos)
+
+Arquivos:
+- `workflows/youtube-websub-receiver.json` — recebe push do YouTube e comenta na hora
+- `workflows/youtube-websub-subscribe.json` — renova inscricao a cada 5 dias
+- `scripts/subscribe-youtube-websub.ps1` — inscricao manual via PowerShell
+
+### Passo a passo
+
+1. Importe **YouTube WebSub - Comentario instantaneo**
+2. No no **Postar comentario**, selecione credencial **YouTube account**
+3. **Ative** o workflow (webhook production URL):
+   `https://n8n-youtube-xs7s.onrender.com/webhook/youtube-websub`
+4. Importe **YouTube WebSub - Renovar inscricao** e **Ative**
+5. Execute uma vez o workflow de renovacao (botao Test) **ou** rode:
+   ```powershell
+   cd C:\Users\Admin\n8n-youtube-automation\scripts
+   .\subscribe-youtube-websub.ps1
+   ```
+6. Confira em **Executions** do receiver se apareceu verificacao `hub.challenge` com sucesso
+
+**Importante:** desative o workflow RSS antigo (`My workflow`) para nao comentar 2x no mesmo video.
+Mantenha o RSS apenas se quiser backup (nao recomendado com WebSub ativo).
 
 ---
 

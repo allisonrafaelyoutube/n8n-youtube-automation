@@ -7,16 +7,33 @@
           "interval": [
             {
               "field": "minutes",
-              "minutesInterval": 30
+              "minutesInterval": 2
             }
           ]
         }
       },
-      "id": "schedule-trigger",
-      "name": "A cada 30 minutos",
+      "id": "schedule-trigger-fast",
+      "name": "A cada 2 minutos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 300]
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "1 8,12,14,18,20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-post-times",
+      "name": "Horarios de postagem (8h 12h 14h 18h 20h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 400]
     },
     {
       "parameters": {
@@ -26,7 +43,7 @@
       "name": "RSS do canal YouTube",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
-      "position": [460, 300]
+      "position": [520, 300]
     },
     {
       "parameters": {
@@ -40,7 +57,7 @@
             {
               "id": "recent-video",
               "leftValue": "={{ $json.pubDate || $json.isoDate }}",
-              "rightValue": "={{ $now.minus({ hours: 3 }).toISO() }}",
+              "rightValue": "={{ $now.minus({ minutes: 25 }).toISO() }}",
               "operator": {
                 "type": "dateTime",
                 "operation": "after"
@@ -51,10 +68,10 @@
         }
       },
       "id": "filter-recent",
-      "name": "Video publicado nas ultimas 3h",
+      "name": "Video publicado nos ultimos 25 min",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
-      "position": [680, 300]
+      "position": [740, 300]
     },
     {
       "parameters": {
@@ -64,7 +81,7 @@
       "name": "Extrair videoId e evitar duplicata",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300]
+      "position": [960, 300]
     },
     {
       "parameters": {
@@ -92,18 +109,7 @@
       "name": "Tem video novo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1120, 300]
-    },
-    {
-      "parameters": {
-        "amount": 3,
-        "unit": "minutes"
-      },
-      "id": "wait-processing",
-      "name": "Esperar processamento do video",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [1340, 220]
+      "position": [1180, 300]
     },
     {
       "parameters": {
@@ -123,13 +129,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"snippet\": {\n    \"videoId\": \"{{ $json.videoId }}\",\n    \"topLevelComment\": {\n      \"snippet\": {\n        \"textOriginal\": \"{{ $env.YOUTUBE_COMMENT_TEXT || 'Links e materiais do video aqui! Deixa sua duvida nos comentarios.' }}\"\n      }\n    }\n  }\n}",
-        "options": {}
+        "options": {
+          "retry": {
+            "maxTries": 4,
+            "waitBetweenTries": 30000
+          }
+        }
       },
       "id": "post-comment",
       "name": "Postar comentario (YouTube API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 220],
+      "position": [1400, 220],
       "credentials": {
         "youTubeOAuth2Api": {
           "id": "CONFIGURE_ME",
@@ -145,11 +156,22 @@
       "name": "Salvar video processado",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 220]
+      "position": [1620, 220]
     }
   ],
   "connections": {
-    "A cada 30 minutos": {
+    "A cada 2 minutos": {
+      "main": [
+        [
+          {
+            "node": "RSS do canal YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Horarios de postagem (8h 12h 14h 18h 20h)": {
       "main": [
         [
           {
@@ -164,14 +186,14 @@
       "main": [
         [
           {
-            "node": "Video publicado nas ultimas 3h",
+            "node": "Video publicado nos ultimos 25 min",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Video publicado nas ultimas 3h": {
+    "Video publicado nos ultimos 25 min": {
       "main": [
         [
           {
@@ -197,23 +219,12 @@
       "main": [
         [
           {
-            "node": "Esperar processamento do video",
+            "node": "Postar comentario (YouTube API)",
             "type": "main",
             "index": 0
           }
         ],
         []
-      ]
-    },
-    "Esperar processamento do video": {
-      "main": [
-        [
-          {
-            "node": "Postar comentario (YouTube API)",
-            "type": "main",
-            "index": 0
-          }
-        ]
       ]
     },
     "Postar comentario (YouTube API)": {
@@ -229,11 +240,12 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
   },
   "staticData": null,
   "tags": [],
-  "triggerCount": 1,
+  "triggerCount": 2,
   "meta": {
     "templateCredsSetupCompleted": false
   }

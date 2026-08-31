@@ -1,0 +1,269 @@
+{
+  "name": "YouTube WebSub - Comentario instantaneo",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "httpMethod": ["GET", "POST"],
+        "path": "youtube-websub",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-websub",
+      "name": "Webhook YouTube WebSub",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "youtube-websub-callback"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-verify",
+              "leftValue": "={{ $json.query['hub.challenge'] || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-verification",
+      "name": "Verificacao do Google?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-challenge",
+      "name": "Responder hub.challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nlet raw = '';\nif (typeof item.body === 'string') raw = item.body;\nelse if (item.binary?.data?.data) raw = Buffer.from(item.binary.data.data, 'base64').toString('utf8');\nelse if (item.body) raw = JSON.stringify(item.body);\nelse raw = JSON.stringify(item);\n\nlet videoId = null;\nconst ytMatch = raw.match(/<yt:videoId>([^<]+)<\\/yt:videoId>/i);\nif (ytMatch) videoId = ytMatch[1];\nif (!videoId) {\n  const linkMatch = raw.match(/(?:v=|\\/shorts\\/|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);\n  if (linkMatch) videoId = linkMatch[1];\n}\n\nif (!videoId) {\n  return [{ json: { skip: true, reason: 'no_video_id' } }];\n}\n\nconst processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\nif (processed.videoIds[videoId]) {\n  return [{ json: { skip: true, reason: 'already_commented', videoId } }];\n}\n\nreturn [{ json: { skip: false, videoId, source: 'websub' } }];"
+      },
+      "id": "parse-websub",
+      "name": "Extrair videoId do push",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-post",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-should-post",
+      "name": "Postar comentario?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"snippet\": {\n    \"videoId\": \"{{ $json.videoId }}\",\n    \"topLevelComment\": {\n      \"snippet\": {\n        \"textOriginal\": \"{{ $env.YOUTUBE_COMMENT_TEXT || 'Me ajuda a bater a meta de 100 mil inscritos se inscrevam no canal ❤️' }}\"\n      }\n    }\n  }\n}",
+        "options": {
+          "retry": {
+            "maxTries": 5,
+            "waitBetweenTries": 15000
+          }
+        }
+      },
+      "id": "post-comment-websub",
+      "name": "Postar comentario (YouTube API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 340],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "CONFIGURE_ME",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst videoId = $('Extrair videoId do push').item.json.videoId;\nconst commentId = $json.id || 'unknown';\n\nprocessed.videoIds[videoId] = {\n  commentId,\n  postedAt: new Date().toISOString(),\n  source: 'websub'\n};\n\nreturn [{\n  json: {\n    videoId,\n    commentId,\n    studioUrl: `https://studio.youtube.com/video/${videoId}/comments`,\n    message: 'Comentario postado via WebSub. Fixe manualmente no Studio.'\n  }\n}];"
+      },
+      "id": "save-processed-websub",
+      "name": "Salvar video processado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok-posted",
+      "name": "Responder OK (comentario)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok-skip",
+      "name": "Responder OK (ignorado)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 520]
+    }
+  ],
+  "connections": {
+    "Webhook YouTube WebSub": {
+      "main": [
+        [
+          {
+            "node": "Verificacao do Google?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificacao do Google?": {
+      "main": [
+        [
+          {
+            "node": "Responder hub.challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extrair videoId do push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair videoId do push": {
+      "main": [
+        [
+          {
+            "node": "Postar comentario?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postar comentario?": {
+      "main": [
+        [
+          {
+            "node": "Postar comentario (YouTube API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK (ignorado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postar comentario (YouTube API)": {
+      "main": [
+        [
+          {
+            "node": "Salvar video processado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar video processado": {
+      "main": [
+        [
+          {
+            "node": "Responder OK (comentario)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

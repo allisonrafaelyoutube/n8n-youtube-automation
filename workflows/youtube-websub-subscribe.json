@@ -1,0 +1,106 @@
+{
+  "name": "YouTube WebSub - Renovar inscricao",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 5,
+              "triggerAtHour": 3,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-renew",
+      "name": "A cada 5 dias",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://pubsubhubbub.appspot.com/subscribe",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "hub.mode",
+              "value": "subscribe"
+            },
+            {
+              "name": "hub.topic",
+              "value": "=https://www.youtube.com/xml/feeds/videos.xml?channel_id={{ $env.YOUTUBE_CHANNEL_ID || 'UCoMiD3PXLj944Tj6sYeuUPA' }}"
+            },
+            {
+              "name": "hub.callback",
+              "value": "=https://n8n-youtube-xs7s.onrender.com/webhook/youtube-websub"
+            },
+            {
+              "name": "hub.verify",
+              "value": "async"
+            },
+            {
+              "name": "hub.lease_seconds",
+              "value": "604800"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "subscribe-hub",
+      "name": "Inscrever no PubSubHubbub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    status: 'subscription_sent',\n    callback: 'https://n8n-youtube-xs7s.onrender.com/webhook/youtube-websub',\n    topic: `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${$env.YOUTUBE_CHANNEL_ID || 'UCoMiD3PXLj944Tj6sYeuUPA'}`,\n    message: 'Inscricao enviada. O Google vai validar o webhook em segundos. Mantenha o workflow WebSub receiver ATIVO.'\n  }\n}];"
+      },
+      "id": "log-result",
+      "name": "Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "A cada 5 dias": {
+      "main": [
+        [
+          {
+            "node": "Inscrever no PubSubHubbub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscrever no PubSubHubbub": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
