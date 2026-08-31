@@ -1,0 +1,320 @@
+{
+  "name": "Facebook Page - Comentario instantaneo",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "httpMethod": ["GET", "POST"],
+        "path": "facebook-page",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-facebook",
+      "name": "Webhook Meta (Facebook Page)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "facebook-page-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-challenge",
+              "leftValue": "={{ $json.query['hub.challenge'] || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-meta-verify",
+      "name": "Verificacao Meta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "token-ok",
+              "leftValue": "={{ $json.query['hub.verify_token'] || '' }}",
+              "rightValue": "={{ $env.FACEBOOK_VERIFY_TOKEN || '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-token-valid",
+      "name": "Verify token correto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-challenge",
+      "name": "Responder hub.challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "respond-forbidden",
+      "name": "Responder 403",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst processed = $getWorkflowStaticData('global');\nif (!processed.postIds) processed.postIds = {};\n\nconst pageId = ($env.FACEBOOK_PAGE_ID || '').trim();\nconst entries = body.entry || [];\nconst output = [];\n\nfor (const entry of entries) {\n  if (pageId && String(entry.id) !== String(pageId)) continue;\n\n  for (const change of (entry.changes || [])) {\n    if (change.field !== 'feed') continue;\n    const v = change.value || {};\n    if (v.item !== 'post' || v.verb !== 'add') continue;\n\n    const postId = v.post_id;\n    if (!postId) continue;\n    if (processed.postIds[postId]) continue;\n\n    output.push({\n      json: {\n        skip: false,\n        postId,\n        postMessage: v.message || '',\n        source: 'facebook_webhook'\n      }\n    });\n  }\n}\n\nif (!output.length) {\n  return [{ json: { skip: true, reason: 'no_new_post' } }];\n}\n\nreturn output;"
+      },
+      "id": "parse-facebook",
+      "name": "Extrair post novo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-post",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-should-comment",
+      "name": "Comentar no post?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.postId }}/comments",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $env.FACEBOOK_COMMENT_TEXT || $env.YOUTUBE_COMMENT_TEXT || 'Me ajuda a bater a meta de 100 mil inscritos se inscrevam no canal ❤️' }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.FACEBOOK_PAGE_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "retry": {
+            "maxTries": 3,
+            "waitBetweenTries": 10000
+          }
+        }
+      },
+      "id": "post-facebook-comment",
+      "name": "Postar comentario (Graph API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "const processed = $getWorkflowStaticData('global');\nif (!processed.postIds) processed.postIds = {};\n\nconst postId = $('Extrair post novo').item.json.postId;\nconst commentId = $json.id || 'unknown';\n\nprocessed.postIds[postId] = {\n  commentId,\n  postedAt: new Date().toISOString(),\n  source: 'facebook'\n};\n\nreturn [{\n  json: {\n    postId,\n    commentId,\n    pageUrl: `https://www.facebook.com/${postId}`,\n    message: 'Comentario postado na Pagina. Fixe manualmente se quiser.'\n  }\n}];"
+      },
+      "id": "save-processed-fb",
+      "name": "Salvar post processado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok-comment",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok-skip",
+      "name": "Responder OK (ignorado)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 520]
+    }
+  ],
+  "connections": {
+    "Webhook Meta (Facebook Page)": {
+      "main": [
+        [
+          {
+            "node": "Verificacao Meta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificacao Meta?": {
+      "main": [
+        [
+          {
+            "node": "Verify token correto?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extrair post novo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify token correto?": {
+      "main": [
+        [
+          {
+            "node": "Responder hub.challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 403",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair post novo": {
+      "main": [
+        [
+          {
+            "node": "Comentar no post?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comentar no post?": {
+      "main": [
+        [
+          {
+            "node": "Postar comentario (Graph API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK (ignorado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postar comentario (Graph API)": {
+      "main": [
+        [
+          {
+            "node": "Salvar post processado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar post processado": {
+      "main": [
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
