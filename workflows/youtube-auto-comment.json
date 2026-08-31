@@ -113,10 +113,10 @@
     },
     {
       "parameters": {
-        "jsCode": "const variants = [\n  'Me ajuda a bater a meta de 100 mil inscritos! Se inscrevam no canal ❤️',\n  'Estamos rumo aos 100 mil inscritos — me ajuda se inscrevendo no canal? ❤️',\n  'Quer me ajudar a bater a meta de 100K inscritos? Inscreva-se no canal ❤️',\n  'Meta: 100 mil inscritos! Se ainda nao e inscrito, se inscreve no canal ❤️',\n  'Me ajuda nessa meta de 100 mil inscritos se inscrevendo aqui no canal ❤️',\n];\n\nconst item = $input.first().json;\nconst commentText = variants[Math.floor(Math.random() * variants.length)];\n\nreturn [{ json: { ...item, commentText } }];"
+        "jsCode": "const variants = [\n  'Deixa o like e se inscreve no canal — estamos na meta dos 100 mil! ❤️',\n  'Me ajuda a bater a meta de 100 mil inscritos? Se inscreve no canal ❤️',\n  'Estamos rumo aos 100K! Se ainda nao e inscrito, se inscreve aqui ❤️',\n  'Meta: 100 mil inscritos! Sua inscricao ajuda demais ❤️',\n  'Quer me ajudar na meta de 100 mil? E so se inscrever no canal ❤️',\n  'Faltam poucos pra meta de 100 mil inscritos — se inscreve no canal? ❤️',\n  'Se curtiu, se inscreve no canal! Estamos indo pros 100 mil ❤️',\n  'Me ajuda nessa meta de 100 mil inscritos se inscrevendo aqui ❤️',\n  'Bora juntos aos 100 mil inscritos? Se inscreve no canal ❤️',\n  'Obrigado por assistir! Me ajuda bater 100 mil inscritos se inscrevendo no canal ❤️',\n];\n\nconst item = $input.first().json;\nconst commentText = variants[Math.floor(Math.random() * variants.length)];\n\nreturn [{ json: { ...item, commentText } }];"
       },
       "id": "pick-comment-rss",
-      "name": "Sortear comentario (5 variantes)",
+      "name": "Sortear comentario (10 variantes)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1280, 220]
@@ -229,7 +229,7 @@
       "main": [
         [
           {
-            "node": "Sortear comentario (5 variantes)",
+            "node": "Sortear comentario (10 variantes)",
             "type": "main",
             "index": 0
           }
@@ -237,7 +237,7 @@
         []
       ]
     },
-    "Sortear comentario (5 variantes)": {
+    "Sortear comentario (10 variantes)": {
       "main": [
         [
           {

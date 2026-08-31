@@ -1,18 +1,15 @@
-// 5 variantes — todas incluem a meta de 100 mil inscritos
-// Usado nos workflows n8n (copiar para o no "Sortear comentario")
-
+// 10 variantes — todas mencionam a meta de 100 mil inscritos
 const COMMENT_VARIANTS = [
-  'Me ajuda a bater a meta de 100 mil inscritos! Se inscrevam no canal ❤️',
-  'Estamos rumo aos 100 mil inscritos — me ajuda se inscrevendo no canal? ❤️',
-  'Quer me ajudar a bater a meta de 100K inscritos? Inscreva-se no canal ❤️',
-  'Meta: 100 mil inscritos! Se ainda nao e inscrito, se inscreve no canal ❤️',
-  'Me ajuda nessa meta de 100 mil inscritos se inscrevendo aqui no canal ❤️',
+  'Deixa o like e se inscreve no canal — estamos na meta dos 100 mil! ❤️',
+  'Me ajuda a bater a meta de 100 mil inscritos? Se inscreve no canal ❤️',
+  'Estamos rumo aos 100K! Se ainda nao e inscrito, se inscreve aqui ❤️',
+  'Meta: 100 mil inscritos! Sua inscricao ajuda demais ❤️',
+  'Quer me ajudar na meta de 100 mil? E so se inscrever no canal ❤️',
+  'Faltam poucos pra meta de 100 mil inscritos — se inscreve no canal? ❤️',
+  'Se curtiu, se inscreve no canal! Estamos indo pros 100 mil ❤️',
+  'Me ajuda nessa meta de 100 mil inscritos se inscrevendo aqui ❤️',
+  'Bora juntos aos 100 mil inscritos? Se inscreve no canal ❤️',
+  'Obrigado por assistir! Me ajuda bater 100 mil inscritos se inscrevendo no canal ❤️',
 ];
-
-// Codigo do no n8n:
-// const variants = [...];
-// const item = $input.first().json;
-// const commentText = variants[Math.floor(Math.random() * variants.length)];
-// return [{ json: { ...item, commentText } }];
 
 module.exports = { COMMENT_VARIANTS };
