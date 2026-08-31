@@ -100,6 +100,16 @@
     },
     {
       "parameters": {
+        "jsCode": "const variants = [\n  'Me ajuda a bater a meta de 100 mil inscritos! Se inscrevam no canal ❤️',\n  'Estamos rumo aos 100 mil inscritos — me ajuda se inscrevendo no canal? ❤️',\n  'Quer me ajudar a bater a meta de 100K inscritos? Inscreva-se no canal ❤️',\n  'Meta: 100 mil inscritos! Se ainda nao e inscrito, se inscreve no canal ❤️',\n  'Me ajuda nessa meta de 100 mil inscritos se inscrevendo aqui no canal ❤️',\n];\n\nconst item = $input.first().json;\nconst commentText = variants[Math.floor(Math.random() * variants.length)];\n\nreturn [{ json: { ...item, commentText } }];"
+      },
+      "id": "pick-comment-websub",
+      "name": "Sortear comentario (5 variantes)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1010, 340]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://www.googleapis.com/youtube/v3/commentThreads",
         "authentication": "predefinedCredentialType",
@@ -115,7 +125,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"snippet\": {\n    \"videoId\": \"{{ $json.videoId }}\",\n    \"topLevelComment\": {\n      \"snippet\": {\n        \"textOriginal\": \"{{ $env.YOUTUBE_COMMENT_TEXT || 'Me ajuda a bater a meta de 100 mil inscritos se inscrevam no canal ❤️' }}\"\n      }\n    }\n  }\n}",
+        "jsonBody": "={\n  \"snippet\": {\n    \"videoId\": \"{{ $json.videoId }}\",\n    \"topLevelComment\": {\n      \"snippet\": {\n        \"textOriginal\": \"{{ $json.commentText }}\"\n      }\n    }\n  }\n}",
         "options": {
           "retry": {
             "maxTries": 5,
@@ -127,7 +137,7 @@
       "name": "Postar comentario (YouTube API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 340],
+      "position": [1230, 340],
       "credentials": {
         "youTubeOAuth2Api": {
           "id": "CONFIGURE_ME",
@@ -143,7 +153,7 @@
       "name": "Salvar video processado",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 340]
+      "position": [1450, 340]
     },
     {
       "parameters": {
@@ -157,7 +167,7 @@
       "name": "Responder OK (comentario)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1560, 340]
+      "position": [1670, 340]
     },
     {
       "parameters": {
@@ -219,7 +229,7 @@
       "main": [
         [
           {
-            "node": "Postar comentario (YouTube API)",
+            "node": "Sortear comentario (5 variantes)",
             "type": "main",
             "index": 0
           }
@@ -227,6 +237,17 @@
         [
           {
             "node": "Responder OK (ignorado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortear comentario (5 variantes)": {
+      "main": [
+        [
+          {
+            "node": "Postar comentario (YouTube API)",
             "type": "main",
             "index": 0
           }
