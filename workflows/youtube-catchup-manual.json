@@ -1,0 +1,125 @@
+{
+  "name": "YouTube - Comentario manual (1 video)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "video-id",
+              "name": "videoId",
+              "value": "5i7gyy66B_A",
+              "type": "string"
+            },
+            {
+              "id": "title",
+              "name": "title",
+              "value": "Aeronave com motor de moedor de cana",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-video",
+      "name": "Video alvo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const variants = [\n  'Deixa o like e se inscreve no canal — estamos na meta dos 100 mil! ❤️',\n  'Me ajuda a bater a meta de 100 mil inscritos? Se inscreve no canal ❤️',\n  'Estamos rumo aos 100K! Se ainda nao e inscrito, se inscreve aqui ❤️',\n  'Meta: 100 mil inscritos! Sua inscricao ajuda demais ❤️',\n  'Quer me ajudar na meta de 100 mil? E so se inscrever no canal ❤️',\n  'Faltam poucos pra meta de 100 mil inscritos — se inscreve no canal? ❤️',\n  'Se curtiu, se inscreve no canal! Estamos indo pros 100 mil ❤️',\n  'Me ajuda nessa meta de 100 mil inscritos se inscrevendo aqui ❤️',\n  'Bora juntos aos 100 mil inscritos? Se inscreve no canal ❤️',\n  'Obrigado por assistir! Me ajuda bater 100 mil inscritos se inscrevendo no canal ❤️',\n];\n\nconst item = $input.first().json;\nconst commentText = variants[Math.floor(Math.random() * variants.length)];\n\nreturn [{ json: { ...item, commentText } }];"
+      },
+      "id": "pick-comment",
+      "name": "Sortear comentario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"snippet\": {\n    \"videoId\": \"{{ $json.videoId }}\",\n    \"topLevelComment\": {\n      \"snippet\": {\n        \"textOriginal\": \"{{ $json.commentText }}\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "post-comment",
+      "name": "Postar comentario (YouTube API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "CONFIGURE_ME",
+          "name": "YouTube account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Video alvo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video alvo": {
+      "main": [
+        [
+          {
+            "node": "Sortear comentario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortear comentario": {
+      "main": [
+        [
+          {
+            "node": "Postar comentario (YouTube API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "url": "=https://www.youtube.com/feeds/videos.xml?channel_id={{ $env.YOUTUBE_CHANNEL_ID || 'UCxxxxxxxxxxxxxxxx' }}"
+        "url": "=https://www.youtube.com/feeds/videos.xml?channel_id={{ $env.YOUTUBE_CHANNEL_ID || 'UCoMiD3PXLj944Tj6sYeuUPA' }}"
       },
       "id": "rss-feed",
       "name": "RSS do canal YouTube",
@@ -47,69 +47,24 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "recent-video",
-              "leftValue": "={{ $json.pubDate || $json.isoDate }}",
-              "rightValue": "={{ $now.minus({ minutes: 25 }).toISO() }}",
-              "operator": {
-                "type": "dateTime",
-                "operation": "after"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
+        "jsCode": "const items = $input.all();\nconst processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst dayFormatter = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'America/Sao_Paulo',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit'\n});\nconst todaySP = dayFormatter.format(new Date());\n\nconst pending = [];\nfor (const item of items) {\n  const link = item.json.link || item.json.guid || '';\n  const match = link.match(/(?:v=|\\/shorts\\/|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);\n  const videoId = match ? match[1] : null;\n  if (!videoId) continue;\n  if (processed.videoIds[videoId]) continue;\n\n  const pubDateStr = item.json.pubDate || item.json.isoDate;\n  if (!pubDateStr) continue;\n\n  const pubDaySP = dayFormatter.format(new Date(pubDateStr));\n  if (pubDaySP !== todaySP) continue;\n\n  pending.push({\n    videoId,\n    title: item.json.title,\n    link,\n    pubDate: pubDateStr\n  });\n}\n\npending.sort((a, b) => new Date(a.pubDate) - new Date(b.pubDate));\n\nreturn pending.map((video) => ({ json: video }));"
       },
-      "id": "filter-recent",
-      "name": "Video publicado nos ultimos 25 min",
-      "type": "n8n-nodes-base.filter",
-      "typeVersion": 2.2,
+      "id": "filter-today-pending",
+      "name": "Videos de hoje sem comentario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [740, 300]
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst output = [];\nfor (const item of items) {\n  const link = item.json.link || item.json.guid || '';\n  const match = link.match(/(?:v=|\\/shorts\\/|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);\n  const videoId = match ? match[1] : null;\n  if (!videoId) continue;\n  if (processed.videoIds[videoId]) continue;\n\n  output.push({\n    json: {\n      videoId,\n      title: item.json.title,\n      link,\n      pubDate: item.json.pubDate || item.json.isoDate\n    }\n  });\n}\n\nreturn output;"
+        "batchSize": 1,
+        "options": {}
       },
-      "id": "extract-video-id",
-      "name": "Extrair videoId e evitar duplicata",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "split-batches",
+      "name": "Um video por vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
       "position": [960, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "has-video",
-              "leftValue": "={{ $json.videoId }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
-      },
-      "id": "if-new-video",
-      "name": "Tem video novo?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [1180, 300]
     },
     {
       "parameters": {
@@ -119,7 +74,7 @@
       "name": "Sortear comentario (10 variantes)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 220]
+      "position": [1180, 300]
     },
     {
       "parameters": {
@@ -150,23 +105,33 @@
       "name": "Postar comentario (YouTube API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1500, 220],
+      "position": [1400, 300],
       "credentials": {
         "youTubeOAuth2Api": {
           "id": "CONFIGURE_ME",
-          "name": "YouTube OAuth - conta do canal"
+          "name": "YouTube account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst videoId = $('Extrair videoId e evitar duplicata').item.json.videoId;\nconst commentId = $json.id || 'unknown';\n\nprocessed.videoIds[videoId] = {\n  commentId,\n  postedAt: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    videoId,\n    commentId,\n    title: $('Extrair videoId e evitar duplicata').item.json.title,\n    studioUrl: `https://studio.youtube.com/video/${videoId}/comments`,\n    message: 'Comentario postado. Fixe manualmente no YouTube Studio (pin nao existe na API).'\n  }\n}];"
+        "jsCode": "const processed = $getWorkflowStaticData('global');\nif (!processed.videoIds) processed.videoIds = {};\n\nconst item = $('Sortear comentario (10 variantes)').item.json;\nconst videoId = item.videoId;\nconst commentId = $json.id || 'unknown';\n\nprocessed.videoIds[videoId] = {\n  commentId,\n  postedAt: new Date().toISOString(),\n  source: 'rss-catchup'\n};\n\nreturn [{\n  json: {\n    videoId,\n    commentId,\n    title: item.title,\n    studioUrl: `https://studio.youtube.com/video/${videoId}/comments`,\n    message: 'Comentario postado. Fixe manualmente no YouTube Studio (pin nao existe na API).'\n  }\n}];"
       },
       "id": "save-processed",
       "name": "Salvar video processado",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1620, 220]
+      "position": [1620, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const delaySec = 45 + Math.floor(Math.random() * 46);\nawait new Promise((resolve) => setTimeout(resolve, delaySec * 1000));\nreturn $input.all();"
+      },
+      "id": "delay-between",
+      "name": "Aguardar 45-90s entre comentarios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1840, 300]
     }
   ],
   "connections": {
@@ -196,45 +161,34 @@
       "main": [
         [
           {
-            "node": "Video publicado nos ultimos 25 min",
+            "node": "Videos de hoje sem comentario",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Video publicado nos ultimos 25 min": {
+    "Videos de hoje sem comentario": {
       "main": [
         [
           {
-            "node": "Extrair videoId e evitar duplicata",
+            "node": "Um video por vez",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extrair videoId e evitar duplicata": {
+    "Um video por vez": {
       "main": [
-        [
-          {
-            "node": "Tem video novo?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tem video novo?": {
-      "main": [
+        [],
         [
           {
             "node": "Sortear comentario (10 variantes)",
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Sortear comentario (10 variantes)": {
@@ -253,6 +207,28 @@
         [
           {
             "node": "Salvar video processado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar video processado": {
+      "main": [
+        [
+          {
+            "node": "Aguardar 45-90s entre comentarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar 45-90s entre comentarios": {
+      "main": [
+        [
+          {
+            "node": "Um video por vez",
             "type": "main",
             "index": 0
           }
